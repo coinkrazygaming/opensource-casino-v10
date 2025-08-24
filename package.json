@@ -1,0 +1,22 @@
+{
+  "name": "casino-app",
+  "version": "1.0.0",
+  "description": "Casino application with TypeScript conversion",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/server.js",
+    "serve": "tsc && node dist/server.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.5",
+    "@types/jquery": "^3.5.29",
+    "@types/angular": "^1.8.6",
+    "@types/socket.io": "^3.0.2"
+  },
+  "dependencies": {
+    "socket.io": "^4.7.4"
+  }
+}
