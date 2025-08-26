@@ -1,4 +1,5 @@
 const mix = require('laravel-mix');
+const path = require('path');
 
 /*
  |--------------------------------------------------------------------------
@@ -11,8 +12,8 @@ const mix = require('laravel-mix');
  |
  */
 
-// TypeScript configuration
-mix.ts('resources/ts/app.ts', 'public/js')
+// Use js() instead of ts() for Laravel Mix 4.x compatibility
+mix.js('resources/ts/app.ts', 'public/js')
     .sass('resources/sass/app.scss', 'public/css')
     .options({
         processCssUrls: false
@@ -20,12 +21,10 @@ mix.ts('resources/ts/app.ts', 'public/js')
 
 // Enable source maps for development
 if (!mix.inProduction()) {
-    mix.webpackConfig({
-        devtool: 'source-map'
-    }).sourceMaps();
+    mix.sourceMaps();
 }
 
-// Configure TypeScript options
+// Configure TypeScript support via Babel (Laravel Mix 4.x compatible)
 mix.webpackConfig({
     resolve: {
         extensions: ['.ts', '.tsx', '.js', '.jsx'],
@@ -37,15 +36,19 @@ mix.webpackConfig({
         rules: [
             {
                 test: /\.tsx?$/,
-                loader: 'ts-loader',
-                options: {
-                    appendTsSuffixTo: [/\.vue$/],
-                    transpileOnly: true
-                },
-                exclude: /node_modules/
+                exclude: /node_modules/,
+                use: [
+                    {
+                        loader: 'babel-loader',
+                        options: {
+                            presets: [
+                                '@babel/preset-env',
+                                '@babel/preset-typescript'
+                            ]
+                        }
+                    }
+                ]
             }
         ]
     }
 });
-
-const path = require('path');
