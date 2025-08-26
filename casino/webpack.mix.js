@@ -11,5 +11,41 @@ const mix = require('laravel-mix');
  |
  */
 
-mix.js('resources/js/app.js', 'public/js')
-    .sass('resources/sass/app.scss', 'public/css');
+// TypeScript configuration
+mix.ts('resources/ts/app.ts', 'public/js')
+    .sass('resources/sass/app.scss', 'public/css')
+    .options({
+        processCssUrls: false
+    });
+
+// Enable source maps for development
+if (!mix.inProduction()) {
+    mix.webpackConfig({
+        devtool: 'source-map'
+    }).sourceMaps();
+}
+
+// Configure TypeScript options
+mix.webpackConfig({
+    resolve: {
+        extensions: ['.ts', '.tsx', '.js', '.jsx'],
+        alias: {
+            '@': path.resolve('resources/ts'),
+        }
+    },
+    module: {
+        rules: [
+            {
+                test: /\.tsx?$/,
+                loader: 'ts-loader',
+                options: {
+                    appendTsSuffixTo: [/\.vue$/],
+                    transpileOnly: true
+                },
+                exclude: /node_modules/
+            }
+        ]
+    }
+});
+
+const path = require('path');
