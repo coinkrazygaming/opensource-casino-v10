@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "lib": ["ES5", "DOM"],
+    "module": "UMD",
+    "outDir": "./js-compiled",
+    "rootDir": "./ts",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "noImplicitAny": false,
+    "sourceMap": true,
+    "declaration": false
+  },
+  "include": [
+    "ts/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "js-compiled"
+  ]
+}
