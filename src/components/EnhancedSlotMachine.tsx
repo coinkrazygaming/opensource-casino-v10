@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import SlotMachine, { SlotResult } from './SlotMachine';
-import SlotMachineControls, { 
-  AutoPlaySettings, 
-  BetSettings, 
-  GameSettings 
+import SlotMachineControls, {
+  AutoPlaySettings,
+  BetSettings,
+  GameSettings
 } from './SlotMachineControls';
 import { useUser } from '../context/UserContext';
 import transactionService from '../services/transactionService';
 import SlotGameEngine from '../services/slotGameMechanics';
+import soundManager from '../services/soundManager';
+import animationManager from '../services/animationManager';
 import './EnhancedSlotMachine.css';
 
 interface EnhancedSlotMachineProps {
@@ -59,6 +61,10 @@ const EnhancedSlotMachine: React.FC<EnhancedSlotMachineProps> = ({
     currentWinStreak: 0
   });
 
+  const gameContainerRef = useRef<HTMLDivElement>(null);
+  const [soundInitialized, setSoundInitialized] = useState(false);
+  const [animationInitialized, setAnimationInitialized] = useState(false);
+
   // Bet settings state
   const [betSettings, setBetSettings] = useState<BetSettings>({
     currentBet: minBet,
@@ -95,17 +101,54 @@ const EnhancedSlotMachine: React.FC<EnhancedSlotMachineProps> = ({
     skipWinAnimations: false
   });
 
+  // Initialize sound and animation managers
+  useEffect(() => {
+    const initializeManagers = async () => {
+      try {
+        // Initialize sound manager
+        if (gameSettings.soundEnabled && !soundInitialized) {
+          await soundManager.initialize();
+          setSoundInitialized(true);
+        }
+
+        // Initialize animation manager
+        if (gameSettings.animationsEnabled && !animationInitialized && gameContainerRef.current) {
+          animationManager.initialize(gameContainerRef.current);
+          setAnimationInitialized(true);
+        }
+      } catch (error) {
+        console.error('Failed to initialize managers:', error);
+      }
+    };
+
+    initializeManagers();
+
+    return () => {
+      // Cleanup on unmount
+      if (animationInitialized) {
+        animationManager.cleanup();
+      }
+    };
+  }, [gameSettings.soundEnabled, gameSettings.animationsEnabled, soundInitialized, animationInitialized]);
+
   // Update bet limits when user balance changes
   useEffect(() => {
     const maxAffordableBet = Math.floor(userState.balance.real / betSettings.activeLines);
     const newMaxBet = Math.min(maxBet, maxAffordableBet);
-    
+
     setBetSettings(prev => ({
       ...prev,
       maxBet: newMaxBet,
       currentBet: Math.min(prev.currentBet, newMaxBet)
     }));
   }, [userState.balance.real, betSettings.activeLines, maxBet]);
+
+  // Update sound manager settings when game settings change
+  useEffect(() => {
+    if (soundInitialized) {
+      soundManager.setEnabled(gameSettings.soundEnabled);
+    }
+  }, [gameSettings.soundEnabled, soundInitialized]);
 
   // Auto-play effect
   useEffect(() => {
@@ -138,6 +181,11 @@ const EnhancedSlotMachine: React.FC<EnhancedSlotMachineProps> = ({
     setError(null);
 
     try {
+      // Play spin sound
+      if (gameSettings.soundEnabled && soundInitialized) {
+        soundManager.play('reel_spin');
+      }
+
       // Place bet transaction
       const betTransaction = await placeBet(
         totalBet,
@@ -152,6 +200,11 @@ const EnhancedSlotMachine: React.FC<EnhancedSlotMachineProps> = ({
         }
       );
 
+      // Start spin animation
+      if (gameSettings.animationsEnabled && animationInitialized && gameContainerRef.current) {
+        animationManager.playSequence('spinStart', gameContainerRef.current);
+      }
+
       // Generate game result
       const reels = gameEngine.generateReels();
       const gameResult = gameEngine.evaluateWin(reels, totalBet, getActivePaylines());
@@ -161,8 +214,28 @@ const EnhancedSlotMachine: React.FC<EnhancedSlotMachineProps> = ({
       
       setTimeout(async () => {
         try {
+          // Stop spin sound
+          if (gameSettings.soundEnabled && soundInitialized) {
+            soundManager.stop('reel_spin', 300);
+            soundManager.play('reel_stop');
+          }
+
           // Process win if applicable
           if (gameResult.totalWin > 0) {
+            // Play win sound
+            if (gameSettings.soundEnabled && soundInitialized) {
+              soundManager.playWinSound(gameResult.totalWin, totalBet);
+            }
+
+            // Create win celebration animation
+            if (gameSettings.animationsEnabled && animationInitialized && gameContainerRef.current) {
+              animationManager.createWinCelebration(
+                gameContainerRef.current,
+                gameResult.totalWin,
+                totalBet
+              );
+            }
+
             await recordWin(
               gameResult.totalWin,
               gameId,
@@ -274,27 +347,54 @@ const EnhancedSlotMachine: React.FC<EnhancedSlotMachineProps> = ({
   // Control handlers
   const handleBetChange = (newBet: number) => {
     if (isSpinning) return;
+
+    // Play UI sound
+    if (gameSettings.soundEnabled && soundInitialized) {
+      soundManager.play('button_click');
+    }
+
     setBetSettings(prev => ({ ...prev, currentBet: newBet }));
   };
 
   const handleLinesChange = (newLines: number) => {
     if (isSpinning) return;
+
+    // Play UI sound
+    if (gameSettings.soundEnabled && soundInitialized) {
+      soundManager.play('button_click');
+    }
+
     setBetSettings(prev => ({ ...prev, activeLines: newLines }));
   };
 
   const handleMaxBet = () => {
     if (isSpinning) return;
+
+    // Play UI sound
+    if (gameSettings.soundEnabled && soundInitialized) {
+      soundManager.play('button_click');
+    }
+
     const maxAffordableBet = Math.floor(userState.balance.real / betSettings.activeLines);
     const newBet = Math.min(betSettings.maxBet, maxAffordableBet);
     setBetSettings(prev => ({ ...prev, currentBet: newBet }));
   };
 
   const handleAutoPlayToggle = () => {
+    // Play UI sound
+    if (gameSettings.soundEnabled && soundInitialized) {
+      soundManager.play('button_click');
+    }
+
     if (autoPlaySettings.isActive) {
       setAutoPlaySettings(prev => ({ ...prev, isActive: false, spinsRemaining: 0 }));
     } else {
       if (!canAfford(getTotalBet())) {
         setError('Insufficient balance for auto-play');
+        // Play error sound
+        if (gameSettings.soundEnabled && soundInitialized) {
+          soundManager.play('error');
+        }
         return;
       }
       setAutoPlaySettings(prev => ({
@@ -361,7 +461,10 @@ const EnhancedSlotMachine: React.FC<EnhancedSlotMachineProps> = ({
 
       {/* Main Game Area */}
       <div className="game-content">
-        <div className="slot-machine-container">
+        <div
+          ref={gameContainerRef}
+          className="slot-machine-container"
+        >
           <SlotMachine
             onSpin={() => {}} // We handle spins through the enhanced component
             onBalanceChange={() => {}} // Balance is managed by context
@@ -372,15 +475,15 @@ const EnhancedSlotMachine: React.FC<EnhancedSlotMachineProps> = ({
           
           {/* Win Display Overlay */}
           {lastResult && lastResult.totalWin > 0 && !isSpinning && (
-            <div className="win-overlay">
+            <div className="win-overlay animate-glow">
               <div className="win-amount">
                 <span className="win-label">🎉 WIN!</span>
-                <span className="win-value">${lastResult.totalWin.toLocaleString()}</span>
+                <span className="win-value animate-bounce-soft">${lastResult.totalWin.toLocaleString()}</span>
                 {lastResult.multiplier > 1 && (
-                  <span className="multiplier">x{lastResult.multiplier}</span>
+                  <span className="multiplier animate-float">x{lastResult.multiplier}</span>
                 )}
                 {lastResult.isJackpot && (
-                  <span className="jackpot-badge">🎰 JACKPOT!</span>
+                  <span className="jackpot-badge animate-spin-fast">🎰 JACKPOT!</span>
                 )}
               </div>
               {lastResult.winningLines.length > 0 && (
