@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#667eea" />
+    <meta name="description" content="CoinKrazy Casino - The ultimate social casino experience with exciting games and great rewards!" />
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="CoinKrazy Casino" />
+    <meta property="og:description" content="Play exciting casino games and win big with Gold Coins and Sweeps Coins!" />
+    <meta property="og:image" content="%PUBLIC_URL%/casino-preview.png" />
+    <meta property="og:url" content="https://coinkrazycasino.com" />
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="CoinKrazy Casino" />
+    <meta name="twitter:description" content="Play exciting casino games and win big with Gold Coins and Sweeps Coins!" />
+    <meta name="twitter:image" content="%PUBLIC_URL%/casino-preview.png" />
+    
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Preload Critical Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Favicon for different devices -->
+    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/favicon-16x16.png" />
+    
+    <title>🎰 CoinKrazy Casino - Play & Win Big!</title>
+    
+    <!-- Schema.org structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "CoinKrazy Casino",
+      "description": "Social casino with exciting games and rewards",
+      "url": "https://coinkrazycasino.com",
+      "logo": "https://coinkrazycasino.com/logo.png",
+      "sameAs": [
+        "https://facebook.com/coinkrazycasino",
+        "https://twitter.com/coinkrazycasino",
+        "https://instagram.com/coinkrazycasino"
+      ]
+    }
+    </script>
+  </head>
+  <body>
+    <noscript>
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 100%);
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 20px;
+      ">
+        <div>
+          <h1>🎰 CoinKrazy Casino</h1>
+          <p>You need to enable JavaScript to run this app.</p>
+          <p>Please enable JavaScript in your browser settings and refresh the page.</p>
+        </div>
+      </div>
+    </noscript>
+    
+    <!-- Root element for React -->
+    <div id="root"></div>
+    
+    <!-- Loading screen while React loads -->
+    <div id="loading-screen" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      color: white;
+      font-family: Arial, sans-serif;
+    ">
+      <div style="text-align: center;">
+        <div style="
+          width: 50px;
+          height: 50px;
+          border: 3px solid #333;
+          border-top: 3px solid #ffd700;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 20px;
+        "></div>
+        <h2>🎰 CoinKrazy Casino</h2>
+        <p>Loading your casino experience...</p>
+      </div>
+    </div>
+    
+    <style>
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      /* Hide loading screen once React loads */
+      .react-loaded #loading-screen {
+        display: none;
+      }
+    </style>
+    
+    <script>
+      // Hide loading screen once React is ready
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          document.body.classList.add('react-loaded');
+        }, 500);
+      });
+    </script>
+  </body>
+</html>
