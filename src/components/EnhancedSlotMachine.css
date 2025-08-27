@@ -1,0 +1,642 @@
+/* ========================================
+   ENHANCED SLOT MACHINE CONTAINER
+======================================== */
+
+.enhanced-slot-machine {
+  background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+  border-radius: 20px;
+  padding: 30px;
+  color: white;
+  font-family: 'Arial', sans-serif;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.enhanced-slot-machine::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 20, 147, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(74, 185, 255, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ========================================
+   ERROR BANNER
+======================================== */
+
+.error-banner {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 25px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+  z-index: 1000;
+  animation: slideDown 0.3s ease-out;
+}
+
+.error-icon {
+  font-size: 18px;
+}
+
+.error-message {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.error-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 10px;
+  transition: transform 0.2s ease;
+}
+
+.error-close:hover {
+  transform: scale(1.2);
+}
+
+@keyframes slideDown {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ========================================
+   GAME HEADER
+======================================== */
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 20px 25px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 5;
+}
+
+.game-info h2 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  background: linear-gradient(45deg, #ffd700, #ff6b6b, #4ecdc4);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: rainbow-text 3s ease-in-out infinite;
+}
+
+.game-details {
+  display: flex;
+  gap: 15px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.variant {
+  background: rgba(116, 185, 255, 0.2);
+  color: #74b9ff;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+}
+
+.rtp {
+  background: rgba(0, 184, 148, 0.2);
+  color: #00b894;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+}
+
+.volatility {
+  background: rgba(255, 107, 107, 0.2);
+  color: #ff6b6b;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+}
+
+.session-stats {
+  display: flex;
+  gap: 20px;
+}
+
+.session-stats .stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.session-stats .label {
+  font-size: 11px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+
+.session-stats .value {
+  font-size: 16px;
+  font-weight: bold;
+  color: #74b9ff;
+}
+
+.session-stats .value.positive {
+  color: #00b894;
+}
+
+.session-stats .value.negative {
+  color: #ff6b6b;
+}
+
+@keyframes rainbow-text {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ========================================
+   GAME CONTENT
+======================================== */
+
+.game-content {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 30px;
+  margin-bottom: 30px;
+  position: relative;
+  z-index: 5;
+}
+
+.slot-machine-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.controls-panel {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+/* ========================================
+   WIN OVERLAY
+======================================== */
+
+.win-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, rgba(0, 184, 148, 0.95) 0%, rgba(0, 206, 201, 0.95) 100%);
+  color: white;
+  padding: 30px 40px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 
+    0 20px 60px rgba(0, 184, 148, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  animation: winCelebration 1s ease-out;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.win-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.win-label {
+  font-size: 18px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.win-value {
+  font-size: 32px;
+  font-weight: bold;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.multiplier {
+  font-size: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-weight: bold;
+}
+
+.jackpot-badge {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ffd700 100%);
+  color: #333;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  animation: jackpotPulse 1s ease-in-out infinite alternate;
+}
+
+.winning-lines {
+  font-size: 14px;
+  opacity: 0.9;
+  font-weight: bold;
+}
+
+@keyframes winCelebration {
+  0% { 
+    transform: translate(-50%, -50%) scale(0.8); 
+    opacity: 0; 
+  }
+  50% { 
+    transform: translate(-50%, -50%) scale(1.1); 
+  }
+  100% { 
+    transform: translate(-50%, -50%) scale(1); 
+    opacity: 1; 
+  }
+}
+
+@keyframes jackpotPulse {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.05); }
+}
+
+/* ========================================
+   ENHANCED GAME STATISTICS
+======================================== */
+
+.enhanced-game-stats {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 25px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 5;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 15px;
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px 15px;
+  text-align: center;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(116, 185, 255, 0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.stat-card:hover::before {
+  opacity: 1;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.stat-icon {
+  font-size: 24px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.stat-info {
+  position: relative;
+  z-index: 2;
+}
+
+.stat-label {
+  display: block;
+  font-size: 11px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 5px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 18px;
+  font-weight: bold;
+  color: #74b9ff;
+}
+
+/* ========================================
+   LOGIN OVERLAY
+======================================== */
+
+.login-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+  border-radius: 20px;
+}
+
+.login-prompt {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  padding: 40px 50px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+.login-prompt h3 {
+  margin: 0 0 15px 0;
+  font-size: 24px;
+  color: #ffd700;
+}
+
+.login-prompt p {
+  margin: 0 0 25px 0;
+  opacity: 0.8;
+  font-size: 16px;
+}
+
+.login-button {
+  background: linear-gradient(135deg, #ffd700 0%, #f39c12 100%);
+  color: #333;
+  border: none;
+  border-radius: 25px;
+  padding: 12px 30px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+======================================== */
+
+@media (max-width: 1200px) {
+  .game-content {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .controls-panel {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .enhanced-slot-machine {
+    padding: 20px;
+  }
+
+  .game-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+    padding: 15px 20px;
+  }
+
+  .game-info h2 {
+    font-size: 24px;
+  }
+
+  .game-details {
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .session-stats {
+    gap: 15px;
+  }
+
+  .game-content {
+    gap: 15px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 15px 10px;
+  }
+
+  .stat-icon {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-size: 16px;
+  }
+
+  .win-overlay {
+    padding: 25px 30px;
+    margin: 20px;
+    border-radius: 15px;
+  }
+
+  .win-value {
+    font-size: 28px;
+  }
+
+  .login-prompt {
+    padding: 30px 40px;
+    margin: 20px;
+  }
+
+  .login-prompt h3 {
+    font-size: 20px;
+  }
+
+  .error-banner {
+    left: 20px;
+    right: 20px;
+    transform: none;
+    padding: 10px 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .enhanced-slot-machine {
+    padding: 15px;
+  }
+
+  .game-header {
+    padding: 12px 15px;
+  }
+
+  .game-info h2 {
+    font-size: 20px;
+  }
+
+  .game-details {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .session-stats {
+    gap: 10px;
+  }
+
+  .session-stats .value {
+    font-size: 14px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 12px 8px;
+  }
+
+  .stat-icon {
+    font-size: 18px;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-size: 14px;
+  }
+
+  .win-overlay {
+    padding: 20px 25px;
+  }
+
+  .win-value {
+    font-size: 24px;
+  }
+
+  .jackpot-badge {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY
+======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus styles for keyboard navigation */
+.login-button:focus,
+.error-close:focus {
+  outline: 2px solid #ffd700;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .enhanced-slot-machine {
+    border: 2px solid white;
+  }
+  
+  .stat-card,
+  .game-header,
+  .enhanced-game-stats,
+  .controls-panel {
+    border: 2px solid white;
+  }
+  
+  .win-overlay {
+    border: 3px solid #ffd700;
+  }
+}
+
+/* Loading and animation states */
+.loading {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Smooth transitions for all interactive elements */
+.stat-card,
+.login-button,
+.error-close {
+  transition: all 0.3s ease;
+}
