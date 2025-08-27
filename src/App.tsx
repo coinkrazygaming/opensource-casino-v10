@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import CasinoHomepage from './components/CasinoHomepage';
 import './App.css';
 
@@ -9,7 +9,16 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/" element={<CasinoHomepage />} />
-          {/* Add more routes as needed */}
+          <Route path="/casino" element={<CasinoHomepage />} />
+          <Route path="/games" element={<CasinoHomepage />} />
+          <Route path="/games/:category" element={<CasinoHomepage />} />
+          <Route path="/play/:gameSlug" element={<CasinoHomepage />} />
+          <Route path="/profile" element={<CasinoHomepage />} />
+          <Route path="/rewards" element={<CasinoHomepage />} />
+          <Route path="/vip" element={<CasinoHomepage />} />
+          <Route path="/support" element={<CasinoHomepage />} />
+          {/* Redirect any unknown routes to homepage */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </Router>
