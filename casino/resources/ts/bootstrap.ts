@@ -1,10 +1,12 @@
-import * as _ from 'lodash';
 import axios, { AxiosStatic } from 'axios';
+
+// Use require for lodash to avoid TypeScript module resolution issues
+const _ = require('lodash');
 
 // Extend Window interface to include our global objects
 declare global {
     interface Window {
-        _: typeof _;
+        _: any; // Use any for lodash to avoid complex type issues
         axios: AxiosStatic;
     }
 }
