@@ -1,0 +1,737 @@
+/* ========================================
+   SLOT MACHINE CONTROLS MAIN CONTAINER
+======================================== */
+
+.slot-machine-controls {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  border-radius: 15px;
+  padding: 25px;
+  color: white;
+  font-family: 'Arial', sans-serif;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.slot-machine-controls::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 107, 107, 0.05) 50%, rgba(116, 185, 255, 0.05) 100%);
+  pointer-events: none;
+}
+
+/* ========================================
+   BALANCE SECTION
+======================================== */
+
+.balance-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+}
+
+.balance-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.balance-label {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.balance-amount {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.win-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: win-glow 1s ease-in-out infinite alternate;
+}
+
+.win-label {
+  font-size: 14px;
+  color: #00b894;
+}
+
+.win-amount {
+  font-size: 18px;
+  font-weight: bold;
+  color: #00cec9;
+  text-shadow: 0 0 10px rgba(0, 206, 201, 0.3);
+}
+
+@keyframes win-glow {
+  0% { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+
+/* ========================================
+   BET CONTROLS SECTION
+======================================== */
+
+.bet-controls-section {
+  margin-bottom: 25px;
+}
+
+.bet-display {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bet-per-line,
+.lines-control,
+.total-bet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.bet-per-line label,
+.lines-control label,
+.total-bet label {
+  font-size: 12px;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bet-adjuster,
+.lines-adjuster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bet-button,
+.lines-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bet-button:hover:not(:disabled),
+.lines-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.bet-button:disabled,
+.lines-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.bet-value,
+.lines-value {
+  font-size: 16px;
+  font-weight: bold;
+  min-width: 50px;
+  text-align: center;
+  color: #ffd700;
+}
+
+.total-bet-amount {
+  font-size: 18px;
+  font-weight: bold;
+  color: #ff6b6b;
+  text-shadow: 0 0 10px rgba(255, 107, 107, 0.3);
+}
+
+/* ========================================
+   QUICK BET SECTION
+======================================== */
+
+.quick-bet-section {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.quick-bet-section label {
+  display: block;
+  font-size: 12px;
+  opacity: 0.8;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.quick-bet-buttons {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.quick-bet-button {
+  background: linear-gradient(135deg, #636e72 0%, #2d3436 100%);
+  color: white;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.quick-bet-button:hover:not(:disabled) {
+  border-color: #ffd700;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+}
+
+.quick-bet-button.active {
+  background: linear-gradient(135deg, #ffd700 0%, #f39c12 100%);
+  color: #333;
+  border-color: #f39c12;
+}
+
+.quick-bet-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ========================================
+   ACTION BUTTONS
+======================================== */
+
+.action-buttons {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.max-bet-button,
+.spin-button {
+  border: none;
+  border-radius: 12px;
+  padding: 15px 25px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
+}
+
+.max-bet-button {
+  background: linear-gradient(135deg, #ff7675 0%, #d63031 100%);
+  color: white;
+}
+
+.spin-button {
+  background: linear-gradient(135deg, #ffd700 0%, #f39c12 100%);
+  color: #333;
+  font-size: 18px;
+  padding: 20px 30px;
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+}
+
+.spin-button.spinning {
+  animation: spin-pulse 1s ease-in-out infinite alternate;
+}
+
+.spin-button.quick-spin {
+  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+  color: white;
+}
+
+.spin-button.turbo {
+  background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+  color: white;
+  animation: turbo-glow 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes spin-pulse {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.05); }
+}
+
+@keyframes turbo-glow {
+  0% { box-shadow: 0 8px 25px rgba(232, 67, 147, 0.4); }
+  100% { box-shadow: 0 12px 35px rgba(232, 67, 147, 0.7); }
+}
+
+.max-bet-button:hover:not(:disabled),
+.spin-button:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+}
+
+.max-bet-button:disabled,
+.spin-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ========================================
+   AUTO PLAY CONTAINER
+======================================== */
+
+.auto-play-container {
+  display: flex;
+  gap: 5px;
+  align-items: stretch;
+}
+
+.auto-play-button {
+  background: linear-gradient(135deg, #636e72 0%, #2d3436 100%);
+  color: white;
+  border: none;
+  border-radius: 10px 0 0 10px;
+  padding: 12px 18px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+.auto-play-button.active {
+  background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+  animation: auto-play-active 2s ease-in-out infinite alternate;
+}
+
+.auto-play-menu-button {
+  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+  color: white;
+  border: none;
+  border-radius: 0 10px 10px 0;
+  padding: 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 40px;
+}
+
+.auto-play-button:hover:not(:disabled),
+.auto-play-menu-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.auto-play-button:disabled,
+.auto-play-menu-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@keyframes auto-play-active {
+  0% { box-shadow: 0 5px 15px rgba(0, 184, 148, 0.3); }
+  100% { box-shadow: 0 8px 25px rgba(0, 184, 148, 0.6); }
+}
+
+/* ========================================
+   SETTINGS ROW
+======================================== */
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 15px;
+}
+
+.game-mode-toggles {
+  display: flex;
+  gap: 10px;
+}
+
+.mode-button {
+  background: linear-gradient(135deg, #636e72 0%, #2d3436 100%);
+  color: white;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mode-button.active {
+  background: linear-gradient(135deg, #ffd700 0%, #f39c12 100%);
+  color: #333;
+  border-color: #f39c12;
+}
+
+.mode-button:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.settings-button {
+  background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settings-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(162, 155, 254, 0.4);
+}
+
+/* ========================================
+   MENUS
+======================================== */
+
+.auto-play-menu,
+.game-settings-menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  min-width: 300px;
+  margin-top: 10px;
+  backdrop-filter: blur(10px);
+}
+
+.menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.menu-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #ffd700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.close-button {
+  background: linear-gradient(135deg, #ff7675 0%, #d63031 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-button:hover {
+  transform: scale(1.1);
+}
+
+/* ========================================
+   AUTO PLAY OPTIONS
+======================================== */
+
+.auto-play-options,
+.settings-options {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.option-group,
+.setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.option-group label,
+.setting-group label {
+  font-size: 14px;
+  font-weight: bold;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.option-group select,
+.option-group input[type="number"] {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: white;
+  font-size: 14px;
+}
+
+.option-group select:focus,
+.option-group input[type="number"]:focus {
+  outline: none;
+  border-color: #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.option-group input[type="checkbox"],
+.setting-group input[type="checkbox"] {
+  margin-right: 10px;
+  transform: scale(1.2);
+  accent-color: #ffd700;
+}
+
+.option-group label,
+.setting-group label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.option-group label:hover,
+.setting-group label:hover {
+  color: #ffd700;
+}
+
+/* ========================================
+   GAME STATISTICS
+======================================== */
+
+.game-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.stat-label {
+  font-size: 11px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 14px;
+  font-weight: bold;
+  color: #74b9ff;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+======================================== */
+
+@media (max-width: 768px) {
+  .slot-machine-controls {
+    padding: 20px;
+  }
+
+  .balance-section {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .bet-display {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .quick-bet-buttons {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .action-buttons {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .auto-play-container {
+    flex-direction: column;
+  }
+
+  .auto-play-button {
+    border-radius: 10px;
+  }
+
+  .auto-play-menu-button {
+    border-radius: 10px;
+    width: auto;
+  }
+
+  .settings-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .game-mode-toggles {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .game-stats {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .auto-play-menu,
+  .game-settings-menu {
+    left: 10px;
+    right: 10px;
+    transform: none;
+    min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .slot-machine-controls {
+    padding: 15px;
+  }
+
+  .balance-amount {
+    font-size: 18px;
+  }
+
+  .bet-button,
+  .lines-button {
+    width: 25px;
+    height: 25px;
+    font-size: 14px;
+  }
+
+  .quick-bet-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .spin-button {
+    font-size: 16px;
+    padding: 15px 20px;
+  }
+
+  .mode-button {
+    padding: 8px 12px;
+    font-size: 10px;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY
+======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus styles for keyboard navigation */
+.bet-button:focus,
+.lines-button:focus,
+.quick-bet-button:focus,
+.spin-button:focus,
+.max-bet-button:focus,
+.auto-play-button:focus,
+.mode-button:focus,
+.settings-button:focus {
+  outline: 2px solid #ffd700;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .slot-machine-controls {
+    border: 2px solid white;
+  }
+  
+  .bet-button,
+  .lines-button,
+  .quick-bet-button,
+  .spin-button,
+  .max-bet-button,
+  .auto-play-button,
+  .mode-button {
+    border: 2px solid white;
+  }
+}
+
+/* Loading states */
+.spin-button.spinning::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: button-spin 1s linear infinite;
+}
+
+@keyframes button-spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
