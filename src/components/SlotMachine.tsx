@@ -42,7 +42,7 @@ const SYMBOLS: SlotSymbol[] = [
   { id: 'bar', name: 'Bar', value: 10, rarity: 0.08, emoji: '📊', color: '#2f3542' },
   { id: 'seven', name: 'Lucky 7', value: 15, rarity: 0.05, emoji: '7️⃣', color: '#ff3838' },
   { id: 'diamond', name: 'Diamond', value: 25, rarity: 0.03, emoji: '💎', color: '#74b9ff' },
-  { id: 'crown', name: 'Crown', value: 50, rarity: 0.02, emoji: '👑', color: '#fdcb6e' },
+  { id: 'crown', name: 'Crown', value: 50, rarity: 0.02, emoji: '���', color: '#fdcb6e' },
   { id: 'jackpot', name: 'Jackpot', value: 100, rarity: 0.01, emoji: '🎰', color: '#00b894' }
 ];
 
@@ -105,24 +105,6 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
     setReels(initialReels);
   }, [getRandomSymbol]);
 
-  // Auto-play logic
-  useEffect(() => {
-    if (isAutoPlay && autoPlayCount < maxAutoPlays && balance >= bet) {
-      autoPlayRef.current = setTimeout(() => {
-        spin();
-      }, 2000);
-    } else if (isAutoPlay && (autoPlayCount >= maxAutoPlays || balance < bet)) {
-      setIsAutoPlay(false);
-      setAutoPlayCount(0);
-    }
-
-    return () => {
-      if (autoPlayRef.current) {
-        clearTimeout(autoPlayRef.current);
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAutoPlay, autoPlayCount, maxAutoPlays, balance, bet]);
 
   // Check for winning combinations
   const checkWins = useCallback((gameReels: SlotSymbol[][]): { winningLines: number[], totalWin: number, multiplier: number } => {
@@ -229,6 +211,24 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
 
     setIsSpinning(false);
   }, [isSpinning, balance, bet, onBalanceChange, onSpin, checkWins, getRandomSymbol, isAutoPlay]);
+
+  // Auto-play logic
+  useEffect(() => {
+    if (isAutoPlay && autoPlayCount < maxAutoPlays && balance >= bet) {
+      autoPlayRef.current = setTimeout(() => {
+        spin();
+      }, 2000);
+    } else if (isAutoPlay && (autoPlayCount >= maxAutoPlays || balance < bet)) {
+      setIsAutoPlay(false);
+      setAutoPlayCount(0);
+    }
+
+    return () => {
+      if (autoPlayRef.current) {
+        clearTimeout(autoPlayRef.current);
+      }
+    };
+  }, [isAutoPlay, autoPlayCount, maxAutoPlays, balance, bet, spin]);
 
   const handleBetChange = (newBet: number) => {
     if (!isSpinning && newBet >= minBet && newBet <= maxBet && newBet <= balance) {
