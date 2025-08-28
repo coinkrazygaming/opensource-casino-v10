@@ -1,0 +1,65 @@
+/* ========================================
+   BONUS ROUND MANAGER STYLES
+======================================== */
+
+.bonus-round-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bonus-overlay {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 40px;
+  color: white;
+  text-align: center;
+  max-width: 600px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+.bonus-placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.bonus-placeholder h2 {
+  margin: 0;
+  font-size: 28px;
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.bonus-placeholder p {
+  margin: 0;
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+.bonus-result {
+  background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+  padding: 20px;
+  border-radius: 15px;
+  margin-top: 20px;
+}
+
+.bonus-result h3 {
+  margin: 0 0 10px 0;
+  font-size: 24px;
+}
+
+.bonus-result p {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+}
