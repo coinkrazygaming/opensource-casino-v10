@@ -1,1 +1,420 @@
-import React, { useState, useEffect, useCallback } from 'react';\nimport { SlotSymbol } from './SlotMachine';\nimport soundManager from '../services/soundManager';\nimport animationManager from '../services/animationManager';\nimport './BonusRoundManager.css';\n\nexport interface BonusRound {\n  id: string;\n  type: 'free_spins' | 'pick_bonus' | 'wheel_bonus' | 'cascading_reels' | 'expanding_wilds';\n  name: string;\n  description: string;\n  isActive: boolean;\n  progress: number;\n  maxProgress: number;\n  multiplier: number;\n  spinsRemaining?: number;\n  picks?: number;\n  prizes?: number[];\n  specialSymbols?: SlotSymbol[];\n  backgroundMusic?: string;\n  triggerSymbols: string[];\n  minTriggerCount: number;\n}\n\nexport interface BonusResult {\n  type: string;\n  totalWin: number;\n  multiplier: number;\n  spinsUsed: number;\n  specialFeatures: string[];\n  completed: boolean;\n}\n\nexport interface PickBonusItem {\n  id: string;\n  value: number;\n  type: 'coin' | 'multiplier' | 'extra_pick' | 'collect' | 'jackpot';\n  icon: string;\n  revealed: boolean;\n  selected: boolean;\n}\n\nexport interface WheelSegment {\n  id: string;\n  value: number;\n  type: 'cash' | 'multiplier' | 'free_spins' | 'jackpot';\n  color: string;\n  probability: number;\n  label: string;\n}\n\ninterface BonusRoundManagerProps {\n  gameId: string;\n  currentBet: number;\n  onBonusComplete: (result: BonusResult) => void;\n  onBonusStart?: () => void;\n  soundEnabled: boolean;\n  animationsEnabled: boolean;\n}\n\nconst BonusRoundManager: React.FC<BonusRoundManagerProps> = ({\n  gameId,\n  currentBet,\n  onBonusComplete,\n  onBonusStart,\n  soundEnabled,\n  animationsEnabled\n}) => {\n  const [activeBonusRound, setActiveBonusRound] = useState<BonusRound | null>(null);\n  const [bonusResult, setBonusResult] = useState<BonusResult | null>(null);\n  const [pickBonusItems, setPickBonusItems] = useState<PickBonusItem[]>([]);\n  const [wheelSegments] = useState<WheelSegment[]>([\n    { id: '1', value: 100, type: 'cash', color: '#FFD700', probability: 0.3, label: '$100' },\n    { id: '2', value: 200, type: 'cash', color: '#FFA500', probability: 0.25, label: '$200' },\n    { id: '3', value: 500, type: 'cash', color: '#FF6B6B', probability: 0.15, label: '$500' },\n    { id: '4', value: 2, type: 'multiplier', color: '#4ECDC4', probability: 0.15, label: '2x' },\n    { id: '5', value: 5, type: 'multiplier', color: '#95E1D3', probability: 0.1, label: '5x' },\n    { id: '6', value: 10, type: 'free_spins', color: '#A8E6CF', probability: 0.03, label: '10 FS' },\n    { id: '7', value: 1000, type: 'jackpot', color: '#FF1493', probability: 0.02, label: 'JACKPOT' }\n  ]);\n  const [wheelRotation, setWheelRotation] = useState(0);\n  const [isWheelSpinning, setIsWheelSpinning] = useState(false);\n  const [selectedSegment, setSelectedSegment] = useState<WheelSegment | null>(null);\n\n  // Predefined bonus rounds\n  const availableBonusRounds: { [key: string]: Omit<BonusRound, 'id' | 'isActive' | 'progress'> } = {\n    free_spins_classic: {\n      type: 'free_spins',\n      name: 'Free Spins Bonus',\n      description: 'Get free spins with enhanced multipliers!',\n      maxProgress: 10,\n      multiplier: 3,\n      spinsRemaining: 10,\n      triggerSymbols: ['scatter'],\n      minTriggerCount: 3,\n      backgroundMusic: 'free_spins'\n    },\n    pick_treasure: {\n      type: 'pick_bonus',\n      name: 'Treasure Pick',\n      description: 'Pick treasure chests to reveal prizes!',\n      maxProgress: 3,\n      multiplier: 1,\n      picks: 3,\n      triggerSymbols: ['bonus'],\n      minTriggerCount: 3\n    },\n    fortune_wheel: {\n      type: 'wheel_bonus',\n      name: 'Fortune Wheel',\n      description: 'Spin the wheel of fortune for mega prizes!',\n      maxProgress: 1,\n      multiplier: 1,\n      triggerSymbols: ['wild', 'bonus'],\n      minTriggerCount: 2\n    },\n    cascading_wins: {\n      type: 'cascading_reels',\n      name: 'Cascading Wins',\n      description: 'Winning symbols disappear for new chances!',\n      maxProgress: 5,\n      multiplier: 1,\n      triggerSymbols: ['diamond'],\n      minTriggerCount: 4\n    },\n    wild_expansion: {\n      type: 'expanding_wilds',\n      name: 'Expanding Wilds',\n      description: 'Wild symbols expand to cover entire reels!',\n      maxProgress: 3,\n      multiplier: 2,\n      triggerSymbols: ['wild'],\n      minTriggerCount: 2\n    }\n  };\n\n  // Check for bonus trigger\n  const checkBonusTrigger = useCallback((reels: SlotSymbol[][]): string | null => {\n    const allSymbols = reels.flat();\n    \n    for (const [bonusId, bonusConfig] of Object.entries(availableBonusRounds)) {\n      for (const triggerSymbol of bonusConfig.triggerSymbols) {\n        const count = allSymbols.filter(symbol => symbol.id === triggerSymbol).length;\n        if (count >= bonusConfig.minTriggerCount) {\n          return bonusId;\n        }\n      }\n    }\n    \n    return null;\n  }, [availableBonusRounds]);\n\n  // Start bonus round\n  const startBonusRound = useCallback((bonusId: string) => {\n    const bonusConfig = availableBonusRounds[bonusId];\n    if (!bonusConfig) return;\n\n    const newBonusRound: BonusRound = {\n      id: bonusId,\n      ...bonusConfig,\n      isActive: true,\n      progress: 0\n    };\n\n    setActiveBonusRound(newBonusRound);\n    \n    // Play bonus trigger sound\n    if (soundEnabled) {\n      soundManager.play('bonus_trigger');\n    }\n\n    // Start bonus animation\n    if (animationsEnabled) {\n      // Trigger animation based on bonus type\n      const container = document.querySelector('.bonus-round-container');\n      if (container) {\n        animationManager.createBonusTrigger(container as HTMLElement);\n      }\n    }\n\n    // Initialize bonus-specific data\n    if (bonusConfig.type === 'pick_bonus') {\n      initializePickBonus();\n    }\n\n    onBonusStart?.();\n  }, [availableBonusRounds, soundEnabled, animationsEnabled, onBonusStart]);\n\n  // Initialize pick bonus items\n  const initializePickBonus = () => {\n    const items: PickBonusItem[] = [];\n    const prizes = [50, 100, 150, 200, 300, 500, 1000, 2000];\n    const types: PickBonusItem['type'][] = ['coin', 'coin', 'coin', 'multiplier', 'coin', 'extra_pick', 'coin', 'collect'];\n    \n    for (let i = 0; i < 12; i++) {\n      items.push({\n        id: `pick_${i}`,\n        value: prizes[Math.floor(Math.random() * prizes.length)],\n        type: types[Math.floor(Math.random() * types.length)],\n        icon: getPickItemIcon(types[Math.floor(Math.random() * types.length)]),\n        revealed: false,\n        selected: false\n      });\n    }\n    \n    setPickBonusItems(items);\n  };\n\n  // Get pick item icon\n  const getPickItemIcon = (type: PickBonusItem['type']): string => {\n    const icons = {\n      coin: '💰',\n      multiplier: '✨',\n      extra_pick: '🎁',\n      collect: '💎',\n      jackpot: '🎰'\n    };\n    return icons[type];\n  };\n\n  // Handle pick bonus item selection\n  const handlePickItem = (itemId: string) => {\n    if (!activeBonusRound || activeBonusRound.type !== 'pick_bonus') return;\n    if (!activeBonusRound.picks || activeBonusRound.picks <= 0) return;\n\n    setPickBonusItems(prev => prev.map(item => \n      item.id === itemId \n        ? { ...item, revealed: true, selected: true }\n        : item\n    ));\n\n    const selectedItem = pickBonusItems.find(item => item.id === itemId);\n    if (!selectedItem) return;\n\n    // Play pick sound\n    if (soundEnabled) {\n      soundManager.play('button_click');\n    }\n\n    // Update bonus round progress\n    setActiveBonusRound(prev => {\n      if (!prev) return null;\n      \n      const newProgress = prev.progress + 1;\n      const remainingPicks = (prev.picks || 0) - 1;\n      \n      // Check if bonus should end\n      if (remainingPicks <= 0 || selectedItem.type === 'collect' || newProgress >= prev.maxProgress) {\n        setTimeout(() => completeBonusRound(), 1000);\n      }\n      \n      return {\n        ...prev,\n        progress: newProgress,\n        picks: remainingPicks\n      };\n    });\n  };\n\n  // Handle wheel spin\n  const handleWheelSpin = () => {\n    if (!activeBonusRound || activeBonusRound.type !== 'wheel_bonus' || isWheelSpinning) return;\n\n    setIsWheelSpinning(true);\n    \n    // Play wheel spin sound\n    if (soundEnabled) {\n      soundManager.play('reel_spin');\n    }\n\n    // Calculate random rotation (multiple full rotations + final position)\n    const finalRotation = wheelRotation + 1440 + Math.random() * 360; // 4 full rotations + random\n    setWheelRotation(finalRotation);\n\n    // Determine winning segment\n    setTimeout(() => {\n      const normalizedRotation = finalRotation % 360;\n      const segmentAngle = 360 / wheelSegments.length;\n      const winningIndex = Math.floor((360 - normalizedRotation) / segmentAngle) % wheelSegments.length;\n      const winningSegment = wheelSegments[winningIndex];\n      \n      setSelectedSegment(winningSegment);\n      setIsWheelSpinning(false);\n      \n      // Play win sound\n      if (soundEnabled) {\n        if (winningSegment.type === 'jackpot') {\n          soundManager.play('jackpot');\n        } else {\n          soundManager.play('big_win');\n        }\n      }\n      \n      setTimeout(() => completeBonusRound(), 2000);\n    }, 3000);\n  };\n\n  // Complete bonus round\n  const completeBonusRound = () => {\n    if (!activeBonusRound) return;\n\n    let totalWin = 0;\n    let multiplier = activeBonusRound.multiplier;\n    const spinsUsed = activeBonusRound.maxProgress - (activeBonusRound.spinsRemaining || 0);\n    const specialFeatures: string[] = [];\n\n    // Calculate bonus result based on type\n    switch (activeBonusRound.type) {\n      case 'pick_bonus':\n        const selectedItems = pickBonusItems.filter(item => item.selected);\n        totalWin = selectedItems.reduce((sum, item) => {\n          if (item.type === 'coin') {\n            return sum + item.value * currentBet;\n          } else if (item.type === 'multiplier') {\n            multiplier *= item.value;\n            specialFeatures.push(`${item.value}x Multiplier`);\n          }\n          return sum;\n        }, 0);\n        break;\n        \n      case 'wheel_bonus':\n        if (selectedSegment) {\n          if (selectedSegment.type === 'cash') {\n            totalWin = selectedSegment.value * currentBet;\n          } else if (selectedSegment.type === 'multiplier') {\n            multiplier = selectedSegment.value;\n            totalWin = currentBet * multiplier;\n            specialFeatures.push(`${selectedSegment.value}x Multiplier`);\n          } else if (selectedSegment.type === 'jackpot') {\n            totalWin = selectedSegment.value * currentBet;\n            specialFeatures.push('Jackpot Win!');\n          }\n        }\n        break;\n        \n      case 'free_spins':\n        // Free spins result would be calculated by the main game engine\n        totalWin = currentBet * multiplier * (activeBonusRound.progress || 1);\n        specialFeatures.push(`${activeBonusRound.progress} Free Spins`);\n        break;\n        \n      default:\n        totalWin = currentBet * multiplier;\n    }\n\n    const result: BonusResult = {\n      type: activeBonusRound.type,\n      totalWin: Math.floor(totalWin),\n      multiplier,\n      spinsUsed,\n      specialFeatures,\n      completed: true\n    };\n\n    setBonusResult(result);\n    \n    // Play completion sound\n    if (soundEnabled) {\n      soundManager.play('coins_drop');\n    }\n\n    // Show result for a few seconds then complete\n    setTimeout(() => {\n      onBonusComplete(result);\n      setActiveBonusRound(null);\n      setBonusResult(null);\n      setPickBonusItems([]);\n      setSelectedSegment(null);\n      setWheelRotation(0);\n    }, 3000);\n  };\n\n  // Render pick bonus\n  const renderPickBonus = () => {\n    if (!activeBonusRound || activeBonusRound.type !== 'pick_bonus') return null;\n\n    return (\n      <div className=\"pick-bonus-container\">\n        <div className=\"bonus-header\">\n          <h2>{activeBonusRound.name}</h2>\n          <p>{activeBonusRound.description}</p>\n          <div className=\"picks-remaining\">\n            Picks Remaining: {activeBonusRound.picks}\n          </div>\n        </div>\n        \n        <div className=\"pick-items-grid\">\n          {pickBonusItems.map(item => (\n            <div\n              key={item.id}\n              className={`pick-item ${item.revealed ? 'revealed' : ''} ${item.selected ? 'selected' : ''}`}\n              onClick={() => !item.revealed ? handlePickItem(item.id) : undefined}\n            >\n              {item.revealed ? (\n                <div className=\"item-content\">\n                  <div className=\"item-icon\">{item.icon}</div>\n                  <div className=\"item-value\">\n                    {item.type === 'multiplier' ? `${item.value}x` : `$${item.value}`}\n                  </div>\n                </div>\n              ) : (\n                <div className=\"item-mystery\">\n                  <span className=\"mystery-icon\">❓</span>\n                  <span className=\"mystery-text\">Pick Me!</span>\n                </div>\n              )}\n            </div>\n          ))}\n        </div>\n      </div>\n    );\n  };\n\n  // Render wheel bonus\n  const renderWheelBonus = () => {\n    if (!activeBonusRound || activeBonusRound.type !== 'wheel_bonus') return null;\n\n    return (\n      <div className=\"wheel-bonus-container\">\n        <div className=\"bonus-header\">\n          <h2>{activeBonusRound.name}</h2>\n          <p>{activeBonusRound.description}</p>\n        </div>\n        \n        <div className=\"wheel-container\">\n          <div \n            className={`fortune-wheel ${isWheelSpinning ? 'spinning' : ''}`}\n            style={{ transform: `rotate(${wheelRotation}deg)` }}\n          >\n            {wheelSegments.map((segment, index) => {\n              const angle = (360 / wheelSegments.length) * index;\n              return (\n                <div\n                  key={segment.id}\n                  className=\"wheel-segment\"\n                  style={{\n                    transform: `rotate(${angle}deg)`,\n                    backgroundColor: segment.color\n                  }}\n                >\n                  <div className=\"segment-label\">{segment.label}</div>\n                </div>\n              );\n            })}\n          </div>\n          \n          <div className=\"wheel-pointer\">▼</div>\n          \n          {selectedSegment && (\n            <div className=\"wheel-result\">\n              <h3>You Won!</h3>\n              <div className=\"result-value\">{selectedSegment.label}</div>\n            </div>\n          )}\n          \n          {!isWheelSpinning && !selectedSegment && (\n            <button \n              className=\"spin-wheel-button\"\n              onClick={handleWheelSpin}\n            >\n              Spin the Wheel!\n            </button>\n          )}\n        </div>\n      </div>\n    );\n  };\n\n  // Render free spins bonus\n  const renderFreeSpinsBonus = () => {\n    if (!activeBonusRound || activeBonusRound.type !== 'free_spins') return null;\n\n    return (\n      <div className=\"free-spins-container\">\n        <div className=\"bonus-header\">\n          <h2>{activeBonusRound.name}</h2>\n          <p>{activeBonusRound.description}</p>\n        </div>\n        \n        <div className=\"free-spins-info\">\n          <div className=\"spins-remaining\">\n            <span className=\"label\">Free Spins Remaining:</span>\n            <span className=\"value\">{activeBonusRound.spinsRemaining}</span>\n          </div>\n          \n          <div className=\"current-multiplier\">\n            <span className=\"label\">Current Multiplier:</span>\n            <span className=\"value\">{activeBonusRound.multiplier}x</span>\n          </div>\n          \n          <div className=\"total-won\">\n            <span className=\"label\">Total Won:</span>\n            <span className=\"value\">${(bonusResult?.totalWin || 0).toLocaleString()}</span>\n          </div>\n        </div>\n      </div>\n    );\n  };\n\n  // Render bonus result\n  const renderBonusResult = () => {\n    if (!bonusResult) return null;\n\n    return (\n      <div className=\"bonus-result-overlay\">\n        <div className=\"bonus-result-content\">\n          <h2>🎉 Bonus Complete!</h2>\n          \n          <div className=\"result-details\">\n            <div className=\"result-item\">\n              <span className=\"label\">Total Win:</span>\n              <span className=\"value\">${bonusResult.totalWin.toLocaleString()}</span>\n            </div>\n            \n            {bonusResult.multiplier > 1 && (\n              <div className=\"result-item\">\n                <span className=\"label\">Multiplier:</span>\n                <span className=\"value\">{bonusResult.multiplier}x</span>\n              </div>\n            )}\n            \n            {bonusResult.specialFeatures.length > 0 && (\n              <div className=\"result-item\">\n                <span className=\"label\">Special Features:</span>\n                <div className=\"special-features\">\n                  {bonusResult.specialFeatures.map((feature, index) => (\n                    <span key={index} className=\"feature-tag\">{feature}</span>\n                  ))}\n                </div>\n              </div>\n            )}\n          </div>\n        </div>\n      </div>\n    );\n  };\n\n  // Expose method to trigger bonus\n  React.useImperativeHandle(React.forwardRef(() => null), () => ({\n    checkBonusTrigger,\n    startBonusRound\n  }));\n\n  if (!activeBonusRound && !bonusResult) {\n    return null;\n  }\n\n  return (\n    <div className=\"bonus-round-container\">\n      <div className=\"bonus-overlay\">\n        {activeBonusRound?.type === 'pick_bonus' && renderPickBonus()}\n        {activeBonusRound?.type === 'wheel_bonus' && renderWheelBonus()}\n        {activeBonusRound?.type === 'free_spins' && renderFreeSpinsBonus()}\n        {renderBonusResult()}\n      </div>\n    </div>\n  );\n};\n\nexport default BonusRoundManager;\n\n// Export utility functions\nexport const BonusUtils = {\n  /**\n   * Calculate bonus trigger probability\n   */\n  calculateTriggerProbability(symbolCount: number, totalSymbols: number, minRequired: number): number {\n    if (symbolCount < minRequired) return 0;\n    return Math.pow(symbolCount / totalSymbols, minRequired);\n  },\n\n  /**\n   * Generate random bonus multiplier\n   */\n  generateRandomMultiplier(min: number = 1, max: number = 10): number {\n    return Math.floor(Math.random() * (max - min + 1)) + min;\n  },\n\n  /**\n   * Calculate bonus win based on bet and multiplier\n   */\n  calculateBonusWin(baseBet: number, multiplier: number, bonusValue: number): number {\n    return Math.floor(baseBet * multiplier * bonusValue);\n  },\n\n  /**\n   * Get bonus rarity description\n   */\n  getBonusRarity(triggerProbability: number): string {\n    if (triggerProbability >= 0.1) return 'Common';\n    if (triggerProbability >= 0.05) return 'Uncommon';\n    if (triggerProbability >= 0.02) return 'Rare';\n    if (triggerProbability >= 0.01) return 'Epic';\n    return 'Legendary';\n  }\n};\n", "new_str": ""}, {"old_str": "", "new_str": "import React, { useState, useEffect, useCallback } from 'react';\nimport { SlotSymbol } from './SlotMachine';\nimport soundManager from '../services/soundManager';\nimport animationManager from '../services/animationManager';\nimport './BonusRoundManager.css';\n\nexport interface BonusRound {\n  id: string;\n  type: 'free_spins' | 'pick_bonus' | 'wheel_bonus' | 'cascading_reels' | 'expanding_wilds';\n  name: string;\n  description: string;\n  isActive: boolean;\n  progress: number;\n  maxProgress: number;\n  multiplier: number;\n  spinsRemaining?: number;\n  picks?: number;\n  prizes?: number[];\n  specialSymbols?: SlotSymbol[];\n  backgroundMusic?: string;\n  triggerSymbols: string[];\n  minTriggerCount: number;\n}\n\nexport interface BonusResult {\n  type: string;\n  totalWin: number;\n  multiplier: number;\n  spinsUsed: number;\n  specialFeatures: string[];\n  completed: boolean;\n}\n\nexport interface PickBonusItem {\n  id: string;\n  value: number;\n  type: 'coin' | 'multiplier' | 'extra_pick' | 'collect' | 'jackpot';\n  icon: string;\n  revealed: boolean;\n  selected: boolean;\n}\n\nexport interface WheelSegment {\n  id: string;\n  value: number;\n  type: 'cash' | 'multiplier' | 'free_spins' | 'jackpot';\n  color: string;\n  probability: number;\n  label: string;\n}\n\ninterface BonusRoundManagerProps {\n  gameId: string;\n  currentBet: number;\n  onBonusComplete: (result: BonusResult) => void;\n  onBonusStart?: () => void;\n  soundEnabled: boolean;\n  animationsEnabled: boolean;\n}\n\nconst BonusRoundManager: React.FC<BonusRoundManagerProps> = ({\n  gameId,\n  currentBet,\n  onBonusComplete,\n  onBonusStart,\n  soundEnabled,\n  animationsEnabled\n}) => {\n  const [activeBonusRound, setActiveBonusRound] = useState<BonusRound | null>(null);\n  const [bonusResult, setBonusResult] = useState<BonusResult | null>(null);\n  const [pickBonusItems, setPickBonusItems] = useState<PickBonusItem[]>([]);\n  const [wheelSegments] = useState<WheelSegment[]>([\n    { id: '1', value: 100, type: 'cash', color: '#FFD700', probability: 0.3, label: '$100' },\n    { id: '2', value: 200, type: 'cash', color: '#FFA500', probability: 0.25, label: '$200' },\n    { id: '3', value: 500, type: 'cash', color: '#FF6B6B', probability: 0.15, label: '$500' },\n    { id: '4', value: 2, type: 'multiplier', color: '#4ECDC4', probability: 0.15, label: '2x' },\n    { id: '5', value: 5, type: 'multiplier', color: '#95E1D3', probability: 0.1, label: '5x' },\n    { id: '6', value: 10, type: 'free_spins', color: '#A8E6CF', probability: 0.03, label: '10 FS' },\n    { id: '7', value: 1000, type: 'jackpot', color: '#FF1493', probability: 0.02, label: 'JACKPOT' }\n  ]);\n  const [wheelRotation, setWheelRotation] = useState(0);\n  const [isWheelSpinning, setIsWheelSpinning] = useState(false);\n  const [selectedSegment, setSelectedSegment] = useState<WheelSegment | null>(null);\n\n  // Predefined bonus rounds\n  const availableBonusRounds: { [key: string]: Omit<BonusRound, 'id' | 'isActive' | 'progress'> } = {\n    free_spins_classic: {\n      type: 'free_spins',\n      name: 'Free Spins Bonus',\n      description: 'Get free spins with enhanced multipliers!',\n      maxProgress: 10,\n      multiplier: 3,\n      spinsRemaining: 10,\n      triggerSymbols: ['scatter'],\n      minTriggerCount: 3,\n      backgroundMusic: 'free_spins'\n    },\n    pick_treasure: {\n      type: 'pick_bonus',\n      name: 'Treasure Pick',\n      description: 'Pick treasure chests to reveal prizes!',\n      maxProgress: 3,\n      multiplier: 1,\n      picks: 3,\n      triggerSymbols: ['bonus'],\n      minTriggerCount: 3\n    },\n    fortune_wheel: {\n      type: 'wheel_bonus',\n      name: 'Fortune Wheel',\n      description: 'Spin the wheel of fortune for mega prizes!',\n      maxProgress: 1,\n      multiplier: 1,\n      triggerSymbols: ['wild', 'bonus'],\n      minTriggerCount: 2\n    },\n    cascading_wins: {\n      type: 'cascading_reels',\n      name: 'Cascading Wins',\n      description: 'Winning symbols disappear for new chances!',\n      maxProgress: 5,\n      multiplier: 1,\n      triggerSymbols: ['diamond'],\n      minTriggerCount: 4\n    },\n    wild_expansion: {\n      type: 'expanding_wilds',\n      name: 'Expanding Wilds',\n      description: 'Wild symbols expand to cover entire reels!',\n      maxProgress: 3,\n      multiplier: 2,\n      triggerSymbols: ['wild'],\n      minTriggerCount: 2\n    }\n  };\n\n  // Check for bonus trigger\n  const checkBonusTrigger = useCallback((reels: SlotSymbol[][]): string | null => {\n    const allSymbols = reels.flat();\n    \n    for (const [bonusId, bonusConfig] of Object.entries(availableBonusRounds)) {\n      for (const triggerSymbol of bonusConfig.triggerSymbols) {\n        const count = allSymbols.filter(symbol => symbol.id === triggerSymbol).length;\n        if (count >= bonusConfig.minTriggerCount) {\n          return bonusId;\n        }\n      }\n    }\n    \n    return null;\n  }, [availableBonusRounds]);\n\n  // Start bonus round\n  const startBonusRound = useCallback((bonusId: string) => {\n    const bonusConfig = availableBonusRounds[bonusId];\n    if (!bonusConfig) return;\n\n    const newBonusRound: BonusRound = {\n      id: bonusId,\n      ...bonusConfig,\n      isActive: true,\n      progress: 0\n    };\n\n    setActiveBonusRound(newBonusRound);\n    \n    // Play bonus trigger sound\n    if (soundEnabled) {\n      soundManager.play('bonus_trigger');\n    }\n\n    // Start bonus animation\n    if (animationsEnabled) {\n      // Trigger animation based on bonus type\n      const container = document.querySelector('.bonus-round-container');\n      if (container) {\n        animationManager.createBonusTrigger(container as HTMLElement);\n      }\n    }\n\n    // Initialize bonus-specific data\n    if (bonusConfig.type === 'pick_bonus') {\n      initializePickBonus();\n    }\n\n    onBonusStart?.();\n  }, [availableBonusRounds, soundEnabled, animationsEnabled, onBonusStart]);\n\n  // Initialize pick bonus items\n  const initializePickBonus = () => {\n    const items: PickBonusItem[] = [];\n    const prizes = [50, 100, 150, 200, 300, 500, 1000, 2000];\n    const types: PickBonusItem['type'][] = ['coin', 'coin', 'coin', 'multiplier', 'coin', 'extra_pick', 'coin', 'collect'];\n    \n    for (let i = 0; i < 12; i++) {\n      items.push({\n        id: `pick_${i}`,\n        value: prizes[Math.floor(Math.random() * prizes.length)],\n        type: types[Math.floor(Math.random() * types.length)],\n        icon: getPickItemIcon(types[Math.floor(Math.random() * types.length)]),\n        revealed: false,\n        selected: false\n      });\n    }\n    \n    setPickBonusItems(items);\n  };\n\n  // Get pick item icon\n  const getPickItemIcon = (type: PickBonusItem['type']): string => {\n    const icons = {\n      coin: '💰',\n      multiplier: '✨',\n      extra_pick: '🎁',\n      collect: '💎',\n      jackpot: '🎰'\n    };\n    return icons[type];\n  };\n\n  // Handle pick bonus item selection\n  const handlePickItem = (itemId: string) => {\n    if (!activeBonusRound || activeBonusRound.type !== 'pick_bonus') return;\n    if (!activeBonusRound.picks || activeBonusRound.picks <= 0) return;\n\n    setPickBonusItems(prev => prev.map(item => \n      item.id === itemId \n        ? { ...item, revealed: true, selected: true }\n        : item\n    ));\n\n    const selectedItem = pickBonusItems.find(item => item.id === itemId);\n    if (!selectedItem) return;\n\n    // Play pick sound\n    if (soundEnabled) {\n      soundManager.play('button_click');\n    }\n\n    // Update bonus round progress\n    setActiveBonusRound(prev => {\n      if (!prev) return null;\n      \n      const newProgress = prev.progress + 1;\n      const remainingPicks = (prev.picks || 0) - 1;\n      \n      // Check if bonus should end\n      if (remainingPicks <= 0 || selectedItem.type === 'collect' || newProgress >= prev.maxProgress) {\n        setTimeout(() => completeBonusRound(), 1000);\n      }\n      \n      return {\n        ...prev,\n        progress: newProgress,\n        picks: remainingPicks\n      };\n    });\n  };\n\n  // Handle wheel spin\n  const handleWheelSpin = () => {\n    if (!activeBonusRound || activeBonusRound.type !== 'wheel_bonus' || isWheelSpinning) return;\n\n    setIsWheelSpinning(true);\n    \n    // Play wheel spin sound\n    if (soundEnabled) {\n      soundManager.play('reel_spin');\n    }\n\n    // Calculate random rotation (multiple full rotations + final position)\n    const finalRotation = wheelRotation + 1440 + Math.random() * 360; // 4 full rotations + random\n    setWheelRotation(finalRotation);\n\n    // Determine winning segment\n    setTimeout(() => {\n      const normalizedRotation = finalRotation % 360;\n      const segmentAngle = 360 / wheelSegments.length;\n      const winningIndex = Math.floor((360 - normalizedRotation) / segmentAngle) % wheelSegments.length;\n      const winningSegment = wheelSegments[winningIndex];\n      \n      setSelectedSegment(winningSegment);\n      setIsWheelSpinning(false);\n      \n      // Play win sound\n      if (soundEnabled) {\n        if (winningSegment.type === 'jackpot') {\n          soundManager.play('jackpot');\n        } else {\n          soundManager.play('big_win');\n        }\n      }\n      \n      setTimeout(() => completeBonusRound(), 2000);\n    }, 3000);\n  };\n\n  // Complete bonus round\n  const completeBonusRound = () => {\n    if (!activeBonusRound) return;\n\n    let totalWin = 0;\n    let multiplier = activeBonusRound.multiplier;\n    const spinsUsed = activeBonusRound.maxProgress - (activeBonusRound.spinsRemaining || 0);\n    const specialFeatures: string[] = [];\n\n    // Calculate bonus result based on type\n    switch (activeBonusRound.type) {\n      case 'pick_bonus':\n        const selectedItems = pickBonusItems.filter(item => item.selected);\n        totalWin = selectedItems.reduce((sum, item) => {\n          if (item.type === 'coin') {\n            return sum + item.value * currentBet;\n          } else if (item.type === 'multiplier') {\n            multiplier *= item.value;\n            specialFeatures.push(`${item.value}x Multiplier`);\n          }\n          return sum;\n        }, 0);\n        break;\n        \n      case 'wheel_bonus':\n        if (selectedSegment) {\n          if (selectedSegment.type === 'cash') {\n            totalWin = selectedSegment.value * currentBet;\n          } else if (selectedSegment.type === 'multiplier') {\n            multiplier = selectedSegment.value;\n            totalWin = currentBet * multiplier;\n            specialFeatures.push(`${selectedSegment.value}x Multiplier`);\n          } else if (selectedSegment.type === 'jackpot') {\n            totalWin = selectedSegment.value * currentBet;\n            specialFeatures.push('Jackpot Win!');\n          }\n        }\n        break;\n        \n      case 'free_spins':\n        // Free spins result would be calculated by the main game engine\n        totalWin = currentBet * multiplier * (activeBonusRound.progress || 1);\n        specialFeatures.push(`${activeBonusRound.progress} Free Spins`);\n        break;\n        \n      default:\n        totalWin = currentBet * multiplier;\n    }\n\n    const result: BonusResult = {\n      type: activeBonusRound.type,\n      totalWin: Math.floor(totalWin),\n      multiplier,\n      spinsUsed,\n      specialFeatures,\n      completed: true\n    };\n\n    setBonusResult(result);\n    \n    // Play completion sound\n    if (soundEnabled) {\n      soundManager.play('coins_drop');\n    }\n\n    // Show result for a few seconds then complete\n    setTimeout(() => {\n      onBonusComplete(result);\n      setActiveBonusRound(null);\n      setBonusResult(null);\n      setPickBonusItems([]);\n      setSelectedSegment(null);\n      setWheelRotation(0);\n    }, 3000);\n  };\n\n  // Render pick bonus\n  const renderPickBonus = () => {\n    if (!activeBonusRound || activeBonusRound.type !== 'pick_bonus') return null;\n\n    return (\n      <div className=\"pick-bonus-container\">\n        <div className=\"bonus-header\">\n          <h2>{activeBonusRound.name}</h2>\n          <p>{activeBonusRound.description}</p>\n          <div className=\"picks-remaining\">\n            Picks Remaining: {activeBonusRound.picks}\n          </div>\n        </div>\n        \n        <div className=\"pick-items-grid\">\n          {pickBonusItems.map(item => (\n            <div\n              key={item.id}\n              className={`pick-item ${item.revealed ? 'revealed' : ''} ${item.selected ? 'selected' : ''}`}\n              onClick={() => !item.revealed ? handlePickItem(item.id) : undefined}\n            >\n              {item.revealed ? (\n                <div className=\"item-content\">\n                  <div className=\"item-icon\">{item.icon}</div>\n                  <div className=\"item-value\">\n                    {item.type === 'multiplier' ? `${item.value}x` : `$${item.value}`}\n                  </div>\n                </div>\n              ) : (\n                <div className=\"item-mystery\">\n                  <span className=\"mystery-icon\">❓</span>\n                  <span className=\"mystery-text\">Pick Me!</span>\n                </div>\n              )}\n            </div>\n          ))}\n        </div>\n      </div>\n    );\n  };\n\n  // Render wheel bonus\n  const renderWheelBonus = () => {\n    if (!activeBonusRound || activeBonusRound.type !== 'wheel_bonus') return null;\n\n    return (\n      <div className=\"wheel-bonus-container\">\n        <div className=\"bonus-header\">\n          <h2>{activeBonusRound.name}</h2>\n          <p>{activeBonusRound.description}</p>\n        </div>\n        \n        <div className=\"wheel-container\">\n          <div \n            className={`fortune-wheel ${isWheelSpinning ? 'spinning' : ''}`}\n            style={{ transform: `rotate(${wheelRotation}deg)` }}\n          >\n            {wheelSegments.map((segment, index) => {\n              const angle = (360 / wheelSegments.length) * index;\n              return (\n                <div\n                  key={segment.id}\n                  className=\"wheel-segment\"\n                  style={{\n                    transform: `rotate(${angle}deg)`,\n                    backgroundColor: segment.color\n                  }}\n                >\n                  <div className=\"segment-label\">{segment.label}</div>\n                </div>\n              );\n            })}\n          </div>\n          \n          <div className=\"wheel-pointer\">▼</div>\n          \n          {selectedSegment && (\n            <div className=\"wheel-result\">\n              <h3>You Won!</h3>\n              <div className=\"result-value\">{selectedSegment.label}</div>\n            </div>\n          )}\n          \n          {!isWheelSpinning && !selectedSegment && (\n            <button \n              className=\"spin-wheel-button\"\n              onClick={handleWheelSpin}\n            >\n              Spin the Wheel!\n            </button>\n          )}\n        </div>\n      </div>\n    );\n  };\n\n  // Render free spins bonus\n  const renderFreeSpinsBonus = () => {\n    if (!activeBonusRound || activeBonusRound.type !== 'free_spins') return null;\n\n    return (\n      <div className=\"free-spins-container\">\n        <div className=\"bonus-header\">\n          <h2>{activeBonusRound.name}</h2>\n          <p>{activeBonusRound.description}</p>\n        </div>\n        \n        <div className=\"free-spins-info\">\n          <div className=\"spins-remaining\">\n            <span className=\"label\">Free Spins Remaining:</span>\n            <span className=\"value\">{activeBonusRound.spinsRemaining}</span>\n          </div>\n          \n          <div className=\"current-multiplier\">\n            <span className=\"label\">Current Multiplier:</span>\n            <span className=\"value\">{activeBonusRound.multiplier}x</span>\n          </div>\n          \n          <div className=\"total-won\">\n            <span className=\"label\">Total Won:</span>\n            <span className=\"value\">${(bonusResult?.totalWin || 0).toLocaleString()}</span>\n          </div>\n        </div>\n      </div>\n    );\n  };\n\n  // Render bonus result\n  const renderBonusResult = () => {\n    if (!bonusResult) return null;\n\n    return (\n      <div className=\"bonus-result-overlay\">\n        <div className=\"bonus-result-content\">\n          <h2>🎉 Bonus Complete!</h2>\n          \n          <div className=\"result-details\">\n            <div className=\"result-item\">\n              <span className=\"label\">Total Win:</span>\n              <span className=\"value\">${bonusResult.totalWin.toLocaleString()}</span>\n            </div>\n            \n            {bonusResult.multiplier > 1 && (\n              <div className=\"result-item\">\n                <span className=\"label\">Multiplier:</span>\n                <span className=\"value\">{bonusResult.multiplier}x</span>\n              </div>\n            )}\n            \n            {bonusResult.specialFeatures.length > 0 && (\n              <div className=\"result-item\">\n                <span className=\"label\">Special Features:</span>\n                <div className=\"special-features\">\n                  {bonusResult.specialFeatures.map((feature, index) => (\n                    <span key={index} className=\"feature-tag\">{feature}</span>\n                  ))}\n                </div>\n              </div>\n            )}\n          </div>\n        </div>\n      </div>\n    );\n  };\n\n  // Expose method to trigger bonus\n  React.useImperativeHandle(React.forwardRef(() => null), () => ({\n    checkBonusTrigger,\n    startBonusRound\n  }));\n\n  if (!activeBonusRound && !bonusResult) {\n    return null;\n  }\n\n  return (\n    <div className=\"bonus-round-container\">\n      <div className=\"bonus-overlay\">\n        {activeBonusRound?.type === 'pick_bonus' && renderPickBonus()}\n        {activeBonusRound?.type === 'wheel_bonus' && renderWheelBonus()}\n        {activeBonusRound?.type === 'free_spins' && renderFreeSpinsBonus()}\n        {renderBonusResult()}\n      </div>\n    </div>\n  );\n};\n\nexport default BonusRoundManager;\n\n// Export utility functions\nexport const BonusUtils = {\n  /**\n   * Calculate bonus trigger probability\n   */\n  calculateTriggerProbability(symbolCount: number, totalSymbols: number, minRequired: number): number {\n    if (symbolCount < minRequired) return 0;\n    return Math.pow(symbolCount / totalSymbols, minRequired);\n  },\n\n  /**\n   * Generate random bonus multiplier\n   */\n  generateRandomMultiplier(min: number = 1, max: number = 10): number {\n    return Math.floor(Math.random() * (max - min + 1)) + min;\n  },\n\n  /**\n   * Calculate bonus win based on bet and multiplier\n   */\n  calculateBonusWin(baseBet: number, multiplier: number, bonusValue: number): number {\n    return Math.floor(baseBet * multiplier * bonusValue);\n  },\n\n  /**\n   * Get bonus rarity description\n   */\n  getBonusRarity(triggerProbability: number): string {\n    if (triggerProbability >= 0.1) return 'Common';\n    if (triggerProbability >= 0.05) return 'Uncommon';\n    if (triggerProbability >= 0.02) return 'Rare';\n    if (triggerProbability >= 0.01) return 'Epic';\n    return 'Legendary';\n  }\n};"}]
+import React, { useState, useEffect, useCallback } from 'react';
+import { SlotSymbol } from './SlotMachine';
+import soundManager from '../services/soundManager';
+import animationManager from '../services/animationManager';
+import './BonusRoundManager.css';
+
+export interface BonusRound {
+  id: string;
+  type: 'free_spins' | 'pick_bonus' | 'wheel_bonus' | 'cascading_reels' | 'expanding_wilds';
+  name: string;
+  description: string;
+  isActive: boolean;
+  progress: number;
+  maxProgress: number;
+  multiplier: number;
+  spinsRemaining?: number;
+  picks?: number;
+  prizes?: number[];
+  specialSymbols?: SlotSymbol[];
+  backgroundMusic?: string;
+  triggerSymbols: string[];
+  minTriggerCount: number;
+}
+
+export interface BonusResult {
+  type: string;
+  totalWin: number;
+  multiplier: number;
+  spinsUsed: number;
+  specialFeatures: string[];
+  completed: boolean;
+}
+
+export interface PickBonusItem {
+  id: string;
+  value: number;
+  type: 'coin' | 'multiplier' | 'extra_pick' | 'collect' | 'jackpot';
+  icon: string;
+  revealed: boolean;
+  selected: boolean;
+}
+
+export interface WheelSegment {
+  id: string;
+  value: number;
+  type: 'cash' | 'multiplier' | 'free_spins' | 'jackpot';
+  color: string;
+  probability: number;
+  label: string;
+}
+
+interface BonusRoundManagerProps {
+  gameId: string;
+  currentBet: number;
+  onBonusComplete: (result: BonusResult) => void;
+  onBonusStart?: () => void;
+  soundEnabled: boolean;
+  animationsEnabled: boolean;
+}
+
+const BonusRoundManager: React.FC<BonusRoundManagerProps> = ({
+  gameId,
+  currentBet,
+  onBonusComplete,
+  onBonusStart,
+  soundEnabled,
+  animationsEnabled
+}) => {
+  const [activeBonusRound, setActiveBonusRound] = useState<BonusRound | null>(null);
+  const [bonusResult, setBonusResult] = useState<BonusResult | null>(null);
+  const [pickBonusItems, setPickBonusItems] = useState<PickBonusItem[]>([]);
+  const [wheelSegments] = useState<WheelSegment[]>([
+    { id: '1', value: 100, type: 'cash', color: '#FFD700', probability: 0.3, label: '$100' },
+    { id: '2', value: 200, type: 'cash', color: '#FFA500', probability: 0.25, label: '$200' },
+    { id: '3', value: 500, type: 'cash', color: '#FF6B6B', probability: 0.15, label: '$500' },
+    { id: '4', value: 2, type: 'multiplier', color: '#4ECDC4', probability: 0.15, label: '2x' },
+    { id: '5', value: 5, type: 'multiplier', color: '#95E1D3', probability: 0.1, label: '5x' },
+    { id: '6', value: 10, type: 'free_spins', color: '#A8E6CF', probability: 0.03, label: '10 FS' },
+    { id: '7', value: 1000, type: 'jackpot', color: '#FF1493', probability: 0.02, label: 'JACKPOT' }
+  ]);
+  const [wheelRotation, setWheelRotation] = useState(0);
+  const [isWheelSpinning, setIsWheelSpinning] = useState(false);
+  const [selectedSegment, setSelectedSegment] = useState<WheelSegment | null>(null);
+
+  // Predefined bonus rounds
+  const availableBonusRounds: { [key: string]: Omit<BonusRound, 'id' | 'isActive' | 'progress'> } = {
+    free_spins_classic: {
+      type: 'free_spins',
+      name: 'Free Spins Bonus',
+      description: 'Get free spins with enhanced multipliers!',
+      maxProgress: 10,
+      multiplier: 3,
+      spinsRemaining: 10,
+      triggerSymbols: ['scatter'],
+      minTriggerCount: 3,
+      backgroundMusic: 'free_spins'
+    },
+    pick_treasure: {
+      type: 'pick_bonus',
+      name: 'Treasure Pick',
+      description: 'Pick treasure chests to reveal prizes!',
+      maxProgress: 3,
+      multiplier: 1,
+      picks: 3,
+      triggerSymbols: ['bonus'],
+      minTriggerCount: 3
+    },
+    fortune_wheel: {
+      type: 'wheel_bonus',
+      name: 'Fortune Wheel',
+      description: 'Spin the wheel of fortune for mega prizes!',
+      maxProgress: 1,
+      multiplier: 1,
+      triggerSymbols: ['wild', 'bonus'],
+      minTriggerCount: 2
+    },
+    cascading_wins: {
+      type: 'cascading_reels',
+      name: 'Cascading Wins',
+      description: 'Winning symbols disappear for new chances!',
+      maxProgress: 5,
+      multiplier: 1,
+      triggerSymbols: ['diamond'],
+      minTriggerCount: 4
+    },
+    wild_expansion: {
+      type: 'expanding_wilds',
+      name: 'Expanding Wilds',
+      description: 'Wild symbols expand to cover entire reels!',
+      maxProgress: 3,
+      multiplier: 2,
+      triggerSymbols: ['wild'],
+      minTriggerCount: 2
+    }
+  };
+
+  // Check for bonus trigger
+  const checkBonusTrigger = useCallback((reels: SlotSymbol[][]): string | null => {
+    const allSymbols = reels.flat();
+    
+    for (const [bonusId, bonusConfig] of Object.entries(availableBonusRounds)) {
+      for (const triggerSymbol of bonusConfig.triggerSymbols) {
+        const count = allSymbols.filter(symbol => symbol.id === triggerSymbol).length;
+        if (count >= bonusConfig.minTriggerCount) {
+          return bonusId;
+        }
+      }
+    }
+    
+    return null;
+  }, [availableBonusRounds]);
+
+  // Start bonus round
+  const startBonusRound = useCallback((bonusId: string) => {
+    const bonusConfig = availableBonusRounds[bonusId];
+    if (!bonusConfig) return;
+
+    const newBonusRound: BonusRound = {
+      id: bonusId,
+      ...bonusConfig,
+      isActive: true,
+      progress: 0
+    };
+
+    setActiveBonusRound(newBonusRound);
+    
+    // Play bonus trigger sound
+    if (soundEnabled) {
+      soundManager.play('bonus_trigger');
+    }
+
+    // Start bonus animation
+    if (animationsEnabled) {
+      const container = document.querySelector('.bonus-round-container');
+      if (container) {
+        animationManager.createBonusTrigger(container as HTMLElement);
+      }
+    }
+
+    // Initialize bonus-specific data
+    if (bonusConfig.type === 'pick_bonus') {
+      initializePickBonus();
+    }
+
+    onBonusStart?.();
+  }, [availableBonusRounds, soundEnabled, animationsEnabled, onBonusStart]);
+
+  // Initialize pick bonus items
+  const initializePickBonus = () => {
+    const items: PickBonusItem[] = [];
+    const prizes = [50, 100, 150, 200, 300, 500, 1000, 2000];
+    const types: PickBonusItem['type'][] = ['coin', 'coin', 'coin', 'multiplier', 'coin', 'extra_pick', 'coin', 'collect'];
+    
+    for (let i = 0; i < 12; i++) {
+      items.push({
+        id: `pick_${i}`,
+        value: prizes[Math.floor(Math.random() * prizes.length)],
+        type: types[Math.floor(Math.random() * types.length)],
+        icon: getPickItemIcon(types[Math.floor(Math.random() * types.length)]),
+        revealed: false,
+        selected: false
+      });
+    }
+    
+    setPickBonusItems(items);
+  };
+
+  // Get pick item icon
+  const getPickItemIcon = (type: PickBonusItem['type']): string => {
+    const icons = {
+      coin: '💰',
+      multiplier: '✨',
+      extra_pick: '🎁',
+      collect: '💎',
+      jackpot: '🎰'
+    };
+    return icons[type];
+  };
+
+  // Handle pick bonus item selection
+  const handlePickItem = (itemId: string) => {
+    if (!activeBonusRound || activeBonusRound.type !== 'pick_bonus') return;
+    if (!activeBonusRound.picks || activeBonusRound.picks <= 0) return;
+
+    setPickBonusItems(prev => prev.map(item => 
+      item.id === itemId 
+        ? { ...item, revealed: true, selected: true }
+        : item
+    ));
+
+    const selectedItem = pickBonusItems.find(item => item.id === itemId);
+    if (!selectedItem) return;
+
+    // Play pick sound
+    if (soundEnabled) {
+      soundManager.play('button_click');
+    }
+
+    // Update bonus round progress
+    setActiveBonusRound(prev => {
+      if (!prev) return null;
+      
+      const newProgress = prev.progress + 1;
+      const remainingPicks = (prev.picks || 0) - 1;
+      
+      // Check if bonus should end
+      if (remainingPicks <= 0 || selectedItem.type === 'collect' || newProgress >= prev.maxProgress) {
+        setTimeout(() => completeBonusRound(), 1000);
+      }
+      
+      return {
+        ...prev,
+        progress: newProgress,
+        picks: remainingPicks
+      };
+    });
+  };
+
+  // Handle wheel spin
+  const handleWheelSpin = () => {
+    if (!activeBonusRound || activeBonusRound.type !== 'wheel_bonus' || isWheelSpinning) return;
+
+    setIsWheelSpinning(true);
+    
+    // Play wheel spin sound
+    if (soundEnabled) {
+      soundManager.play('reel_spin');
+    }
+
+    // Calculate random rotation (multiple full rotations + final position)
+    const finalRotation = wheelRotation + 1440 + Math.random() * 360; // 4 full rotations + random
+    setWheelRotation(finalRotation);
+
+    // Determine winning segment
+    setTimeout(() => {
+      const normalizedRotation = finalRotation % 360;
+      const segmentAngle = 360 / wheelSegments.length;
+      const winningIndex = Math.floor((360 - normalizedRotation) / segmentAngle) % wheelSegments.length;
+      const winningSegment = wheelSegments[winningIndex];
+      
+      setSelectedSegment(winningSegment);
+      setIsWheelSpinning(false);
+      
+      // Play win sound
+      if (soundEnabled) {
+        if (winningSegment.type === 'jackpot') {
+          soundManager.play('jackpot');
+        } else {
+          soundManager.play('big_win');
+        }
+      }
+      
+      setTimeout(() => completeBonusRound(), 2000);
+    }, 3000);
+  };
+
+  // Complete bonus round
+  const completeBonusRound = () => {
+    if (!activeBonusRound) return;
+
+    let totalWin = 0;
+    let multiplier = activeBonusRound.multiplier;
+    const spinsUsed = activeBonusRound.maxProgress - (activeBonusRound.spinsRemaining || 0);
+    const specialFeatures: string[] = [];
+
+    // Calculate bonus result based on type
+    switch (activeBonusRound.type) {
+      case 'pick_bonus':
+        const selectedItems = pickBonusItems.filter(item => item.selected);
+        totalWin = selectedItems.reduce((sum, item) => {
+          if (item.type === 'coin') {
+            return sum + item.value * currentBet;
+          } else if (item.type === 'multiplier') {
+            multiplier *= item.value;
+            specialFeatures.push(`${item.value}x Multiplier`);
+          }
+          return sum;
+        }, 0);
+        break;
+        
+      case 'wheel_bonus':
+        if (selectedSegment) {
+          if (selectedSegment.type === 'cash') {
+            totalWin = selectedSegment.value * currentBet;
+          } else if (selectedSegment.type === 'multiplier') {
+            multiplier = selectedSegment.value;
+            totalWin = currentBet * multiplier;
+            specialFeatures.push(`${selectedSegment.value}x Multiplier`);
+          } else if (selectedSegment.type === 'jackpot') {
+            totalWin = selectedSegment.value * currentBet;
+            specialFeatures.push('Jackpot Win!');
+          }
+        }
+        break;
+        
+      case 'free_spins':
+        // Free spins result would be calculated by the main game engine
+        totalWin = currentBet * multiplier * (activeBonusRound.progress || 1);
+        specialFeatures.push(`${activeBonusRound.progress} Free Spins`);
+        break;
+        
+      default:
+        totalWin = currentBet * multiplier;
+    }
+
+    const result: BonusResult = {
+      type: activeBonusRound.type,
+      totalWin: Math.floor(totalWin),
+      multiplier,
+      spinsUsed,
+      specialFeatures,
+      completed: true
+    };
+
+    setBonusResult(result);
+    
+    // Play completion sound
+    if (soundEnabled) {
+      soundManager.play('coins_drop');
+    }
+
+    // Show result for a few seconds then complete
+    setTimeout(() => {
+      onBonusComplete(result);
+      setActiveBonusRound(null);
+      setBonusResult(null);
+      setPickBonusItems([]);
+      setSelectedSegment(null);
+      setWheelRotation(0);
+    }, 3000);
+  };
+
+  if (!activeBonusRound && !bonusResult) {
+    return null;
+  }
+
+  return (
+    <div className="bonus-round-container">
+      <div className="bonus-overlay">
+        {/* Bonus content would be rendered here */}
+        <div className="bonus-placeholder">
+          <h2>Bonus Round: {activeBonusRound?.name}</h2>
+          <p>{activeBonusRound?.description}</p>
+          {bonusResult && (
+            <div className="bonus-result">
+              <h3>Bonus Complete!</h3>
+              <p>Total Win: ${bonusResult.totalWin}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BonusRoundManager;
+
+// Export utility functions
+export const BonusUtils = {
+  calculateTriggerProbability(symbolCount: number, totalSymbols: number, minRequired: number): number {
+    if (symbolCount < minRequired) return 0;
+    return Math.pow(symbolCount / totalSymbols, minRequired);
+  },
+
+  generateRandomMultiplier(min: number = 1, max: number = 10): number {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  },
+
+  calculateBonusWin(baseBet: number, multiplier: number, bonusValue: number): number {
+    return Math.floor(baseBet * multiplier * bonusValue);
+  },
+
+  getBonusRarity(triggerProbability: number): string {
+    if (triggerProbability >= 0.1) return 'Common';
+    if (triggerProbability >= 0.05) return 'Uncommon';
+    if (triggerProbability >= 0.02) return 'Rare';
+    if (triggerProbability >= 0.01) return 'Epic';
+    return 'Legendary';
+  }
+};
