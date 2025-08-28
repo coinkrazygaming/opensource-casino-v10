@@ -121,7 +121,8 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
         clearTimeout(autoPlayRef.current);
       }
     };
-  }, [isAutoPlay, autoPlayCount, maxAutoPlays, balance, bet, spin]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAutoPlay, autoPlayCount, maxAutoPlays, balance, bet]);
 
   // Check for winning combinations
   const checkWins = useCallback((gameReels: SlotSymbol[][]): { winningLines: number[], totalWin: number, multiplier: number } => {
