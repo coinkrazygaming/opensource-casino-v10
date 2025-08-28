@@ -212,23 +212,25 @@ function userReducer(state: UserState, action: UserAction): UserState {
         sessionData: updatedSessionData
       };
 
-    case 'UPDATE_GAME_HISTORY':
+    case 'UPDATE_GAME_HISTORY': {
+      const defaults = {
+        totalSpins: 0,
+        totalWagered: 0,
+        totalWon: 0,
+        biggestWin: 0,
+        lastPlayed: Date.now(),
+        favoriteGame: false,
+      };
+      const prevEntry = state.gameHistory[action.payload.gameId] || defaults;
+      const mergedEntry = { ...prevEntry, ...action.payload.data, lastPlayed: Date.now() };
       return {
         ...state,
         gameHistory: {
           ...state.gameHistory,
-          [action.payload.gameId]: {
-            totalSpins: 0,
-            totalWagered: 0,
-            totalWon: 0,
-            biggestWin: 0,
-            lastPlayed: Date.now(),
-            favoriteGame: false,
-            ...state.gameHistory[action.payload.gameId],
-            ...action.payload.data
-          }
+          [action.payload.gameId]: mergedEntry
         }
       };
+    }
 
     case 'SET_ERROR':
       return { ...state, error: action.payload, loading: false };
