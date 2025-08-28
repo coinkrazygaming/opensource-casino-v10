@@ -80,8 +80,8 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
   const [maxAutoPlays, setMaxAutoPlays] = useState(10);
   
   const autoPlayRef = useRef<NodeJS.Timeout>();
-  const spinSoundRef = useRef<HTMLAudioElement>();
-  const winSoundRef = useRef<HTMLAudioElement>();
+  const spinSoundRef = useRef<HTMLAudioElement | null>(null);
+  const winSoundRef = useRef<HTMLAudioElement | null>(null);
 
   // Generate weighted random symbol
   const getRandomSymbol = useCallback((): SlotSymbol => {
